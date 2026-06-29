@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: kanpo
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    envVars:
+      # 既存の Postgres (mypostgres) に接続する。値は Render ダッシュボードの
+      # Environment タブで手動設定する (Blueprint には保存されない)。
+      - key: SPRING_DATABASE_URL
+        sync: false
+      - key: SPRING_DATABASE_USERNAME
+        sync: false
+      - key: SPRING_DATABASE_PASSWORD
+        sync: false
+      - key: SPRING_SQL_INIT_MODE
+        sync: false

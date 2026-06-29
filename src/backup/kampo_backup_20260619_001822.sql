@@ -1,13 +1,8 @@
 -- Kampo database backup
 -- Generated at 2026-06-19 00:18:22
 
--- 漢方薬データベース schema
--- PostgreSQL想定
-
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
 CREATE TABLE IF NOT EXISTS kampo_products (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     identification_code VARCHAR(50) NOT NULL,
     sales_name VARCHAR(100) NOT NULL,
     reading VARCHAR(100),
@@ -22,11 +17,8 @@ CREATE TABLE IF NOT EXISTS kampo_products (
     CONSTRAINT uq_kampo_products_sales_name UNIQUE (sales_name)
 );
 
-ALTER TABLE kampo_products
-    ALTER COLUMN reading TYPE VARCHAR(100);
-
 CREATE TABLE IF NOT EXISTS kampo_ingredients (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     ingredient_name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -34,7 +26,7 @@ CREATE TABLE IF NOT EXISTS kampo_ingredients (
 );
 
 CREATE TABLE IF NOT EXISTS kampo_product_ingredients (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     product_id BIGINT NOT NULL,
     ingredient_id BIGINT NOT NULL,
     amount_value NUMERIC(10,3) NOT NULL,
@@ -63,29 +55,11 @@ CREATE INDEX IF NOT EXISTS idx_kampo_product_ingredients_product_sort_id
 CREATE INDEX IF NOT EXISTS idx_kampo_products_identification_code
     ON kampo_products(identification_code);
 
-CREATE INDEX IF NOT EXISTS idx_kampo_products_sales_name_trgm
-    ON kampo_products USING gin (sales_name gin_trgm_ops);
+SET REFERENTIAL_INTEGRITY FALSE;
 
-CREATE INDEX IF NOT EXISTS idx_kampo_products_reading_trgm
-    ON kampo_products USING gin (reading gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_kampo_products_summary_trgm
-    ON kampo_products USING gin (efficacy_indication_text gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_kampo_ingredients_name_trgm
-    ON kampo_ingredients USING gin (ingredient_name gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_kampo_products_identification_sort
-    ON kampo_products (
-        (CASE WHEN identification_code ~ '^[0-9]+$' THEN identification_code::bigint END),
-        identification_code,
-        id DESC
-    );
-
-
-BEGIN;
-
-TRUNCATE TABLE kampo_product_ingredients, kampo_ingredients, kampo_products RESTART IDENTITY CASCADE;
+DELETE FROM kampo_product_ingredients;
+DELETE FROM kampo_ingredients;
+DELETE FROM kampo_products;
 
 -- kampo_products
 INSERT INTO kampo_products (id, identification_code, sales_name, reading, efficacy_condition_text, efficacy_indication_text, dosage_daily_amount, dosage_instructions_text, source_file_name, source_document_no, created_at, updated_at) VALUES
@@ -1308,8 +1282,4 @@ INSERT INTO kampo_product_ingredients (id, product_id, ingredient_id, amount_val
   (970, 135, 51, 1.000, 'g', 16, '日局ビャクシ  1.0g', '2026-06-19 00:12:19', '2026-06-19 00:12:19'),
   (971, 135, 15, 0.500, 'g', 17, '日局ショウキョウ    0.5g', '2026-06-19 00:12:19', '2026-06-19 00:12:19');
 
-SELECT setval(pg_get_serial_sequence('kampo_products','id'), COALESCE((SELECT MAX(id) FROM kampo_products), 1), EXISTS (SELECT 1 FROM kampo_products));
-SELECT setval(pg_get_serial_sequence('kampo_ingredients','id'), COALESCE((SELECT MAX(id) FROM kampo_ingredients), 1), EXISTS (SELECT 1 FROM kampo_ingredients));
-SELECT setval(pg_get_serial_sequence('kampo_product_ingredients','id'), COALESCE((SELECT MAX(id) FROM kampo_product_ingredients), 1), EXISTS (SELECT 1 FROM kampo_product_ingredients));
-
-COMMIT;
+SET REFERENTIAL_INTEGRITY TRUE;

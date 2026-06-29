@@ -6,8 +6,7 @@ services:
     region: oregon
     dockerfilePath: ./Dockerfile
     envVars:
-      # 既存の Postgres (mypostgres) に接続する。値は Render ダッシュボードの
-      # Environment タブで手動設定する (Blueprint には保存されない)。
+      # ローカル設定を上書きしたい場合のみ Render ダッシュボードで設定する。
       - key: SPRING_DATABASE_URL
         sync: false
       - key: SPRING_DATABASE_USERNAME

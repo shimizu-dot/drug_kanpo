@@ -13,7 +13,7 @@ public class JdbcConfig {
 
 	@Bean
 	DataSource dataSource(
-			@Value("${spring.datasource.driver-class-name:org.postgresql.Driver}") String driverClassName,
+			@Value("${spring.datasource.driver-class-name:org.h2.Driver}") String driverClassName,
 			@Value("${spring.datasource.url:}") String url,
 			@Value("${spring.datasource.username:}") String username,
 			@Value("${spring.datasource.password:}") String password) {

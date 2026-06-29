@@ -30,7 +30,7 @@
 
 | 項目名 | 論理名 | 型 | 必須 | 主キー/外部キー | 説明 |
 |---|---|---:|---|---|---|
-| `id` | ID | BIGSERIAL | Yes | PK | 主キー |
+| `id` | ID | BIGINT | Yes | PK | 主キー |
 | `identification_code` | 識別コード | VARCHAR(50) | Yes |  | PDF内の識別コード。例: `ツムラ／5` の `5` |
 | `sales_name` | 販売名 | VARCHAR(100) | Yes |  | 例: ツムラ安中散エキス顆粒 |
 | `reading` | 読み方 | VARCHAR(100) | No |  | PDFの `漢方製剤` 直後にあるカタカナ行（位置ソート済みテキストを優先）から抽出し、空白を除去した値。例: `アンチュウサン` |
@@ -57,7 +57,7 @@
 
 | 項目名 | 論理名 | 型 | 必須 | 主キー/外部キー | 説明 |
 |---|---|---:|---|---|---|
-| `id` | ID | BIGSERIAL | Yes | PK | 主キー |
+| `id` | ID | BIGINT | Yes | PK | 主キー |
 | `ingredient_name` | 有効成分名 | VARCHAR(255) | Yes |  | 例: ケイヒ |
 | `created_at` | 作成日時 | TIMESTAMP | Yes |  | 作成日時 |
 | `updated_at` | 更新日時 | TIMESTAMP | Yes |  | 更新日時 |
@@ -74,7 +74,7 @@
 
 | 項目名 | 論理名 | 型 | 必須 | 主キー/外部キー | 説明 |
 |---|---|---:|---|---|---|
-| `id` | ID | BIGSERIAL | Yes | PK | 主キー |
+| `id` | ID | BIGINT | Yes | PK | 主キー |
 | `product_id` | 販売名ID | BIGINT | Yes | FK | `kampo_products.id` 参照 |
 | `ingredient_id` | 有効成分ID | BIGINT | Yes | FK | `kampo_ingredients.id` 参照 |
 | `amount_value` | 配合量数値 | NUMERIC(10,3) | Yes |  | 例: 4.000 |

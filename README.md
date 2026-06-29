@@ -8,7 +8,7 @@
 - 抽出内容の確認・編集・保存
 - コード／成分／摘要による検索
 - 全件一覧表示
-- PostgreSQLバックアップ機能
+- H2 バックアップ機能
 
 ## 技術スタック
 
@@ -17,28 +17,22 @@
 - Thymeleaf
 - Spring Web MVC
 - MyBatis
-- PostgreSQL
+- H2 Database
 - Apache PDFBox
 - Lombok
 
 ## 前提条件
 
 - JDK 21
-- PostgreSQL
+- H2 Database
 - Docker不要（ローカル実行）
 
 ## セットアップ
 
-1. PostgreSQLでデータベースを作成
+1. 依存関係を取得して起動
 
 ```bash
-psql -h localhost -U postgres -d postgres -c "CREATE DATABASE kanpo;"
-```
-
-2. スキーマを適用
-
-```bash
-psql -h localhost -U postgres -d kanpo -f src/main/resources/schema.sql
+./mvnw spring-boot:run
 ```
 
 ## 実行方法
@@ -52,7 +46,7 @@ psql -h localhost -U postgres -d kanpo -f src/main/resources/schema.sql
 ### Windows
 
 ```powershell
-.mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 起動後に次のURLを開きます。
@@ -84,7 +78,7 @@ psql -h localhost -U postgres -d kanpo -f src/main/resources/schema.sql
 - `JDBC_DATABASE_PASSWORD`
 - `PORT`
 
-ローカル起動時のデフォルトは `jdbc:postgresql://localhost:5432/kanpo` です。
+ローカル起動時のデフォルトは `jdbc:h2:file:./data/kanpo` です。
 
 ## Renderデプロイ
 
@@ -114,5 +108,5 @@ psql -h localhost -U postgres -d kanpo -f src/main/resources/schema.sql
 
 ## 既知の注意点
 
-- `application.properties` に未設定の場合、デフォルトで `postgres` ユーザーと `hs0512` パスワードを使用します。
-- Renderでの本番運用では、機密情報をコミットしないでください。
+- `application.properties` に未設定の場合、デフォルトで H2 ファイル DB `./data/kanpo` を使用します。
+- Render で運用する場合は、H2 の永続化方針を別途決めてください。

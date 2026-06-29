@@ -1,10 +1,5 @@
--- 漢方薬データベース schema
--- PostgreSQL想定
-
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
 CREATE TABLE IF NOT EXISTS kampo_products (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     identification_code VARCHAR(50) NOT NULL,
     sales_name VARCHAR(100) NOT NULL,
     reading VARCHAR(100),
@@ -19,11 +14,8 @@ CREATE TABLE IF NOT EXISTS kampo_products (
     CONSTRAINT uq_kampo_products_sales_name UNIQUE (sales_name)
 );
 
-ALTER TABLE kampo_products
-    ALTER COLUMN reading TYPE VARCHAR(100);
-
 CREATE TABLE IF NOT EXISTS kampo_ingredients (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     ingredient_name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,7 +23,7 @@ CREATE TABLE IF NOT EXISTS kampo_ingredients (
 );
 
 CREATE TABLE IF NOT EXISTS kampo_product_ingredients (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     product_id BIGINT NOT NULL,
     ingredient_id BIGINT NOT NULL,
     amount_value NUMERIC(10,3) NOT NULL,
@@ -59,22 +51,3 @@ CREATE INDEX IF NOT EXISTS idx_kampo_product_ingredients_product_sort_id
 
 CREATE INDEX IF NOT EXISTS idx_kampo_products_identification_code
     ON kampo_products(identification_code);
-
-CREATE INDEX IF NOT EXISTS idx_kampo_products_sales_name_trgm
-    ON kampo_products USING gin (sales_name gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_kampo_products_reading_trgm
-    ON kampo_products USING gin (reading gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_kampo_products_summary_trgm
-    ON kampo_products USING gin (efficacy_indication_text gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_kampo_ingredients_name_trgm
-    ON kampo_ingredients USING gin (ingredient_name gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_kampo_products_identification_sort
-    ON kampo_products (
-        (CASE WHEN identification_code ~ '^[0-9]+$' THEN identification_code::bigint END),
-        identification_code,
-        id DESC
-    );

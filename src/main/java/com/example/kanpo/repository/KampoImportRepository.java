@@ -2,6 +2,7 @@ package com.example.kanpo.repository;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
@@ -25,9 +26,11 @@ public class KampoImportRepository {
 	}
 
 	public long insertProduct(KampoImportDraft draft) {
-		Long key = jdbcTemplate.query(connection -> {
+		long id = nextId("kampo_products");
+		jdbcTemplate.update(connection -> {
 			PreparedStatement ps = connection.prepareStatement("""
 				INSERT INTO kampo_products (
+					id,
 					identification_code,
 					sales_name,
 					reading,
@@ -37,29 +40,21 @@ public class KampoImportRepository {
 					dosage_instructions_text,
 					source_file_name,
 					source_document_no
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-				RETURNING id
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				""");
-			ps.setString(1, draft.getIdentificationCode());
-			ps.setString(2, draft.getSalesName());
-			ps.setString(3, draft.getReading());
-			ps.setString(4, draft.getEfficacyConditionText());
-			ps.setString(5, draft.getEfficacyIndicationText());
-			ps.setBigDecimal(6, draft.getDosageDailyAmount());
-			ps.setString(7, draft.getDosageInstructionsText());
-			ps.setString(8, draft.getSourceFileName());
-			ps.setString(9, draft.getSourceDocumentNo());
+			ps.setLong(1, id);
+			ps.setString(2, draft.getIdentificationCode());
+			ps.setString(3, draft.getSalesName());
+			ps.setString(4, draft.getReading());
+			ps.setString(5, draft.getEfficacyConditionText());
+			ps.setString(6, draft.getEfficacyIndicationText());
+			ps.setBigDecimal(7, draft.getDosageDailyAmount());
+			ps.setString(8, draft.getDosageInstructionsText());
+			ps.setString(9, draft.getSourceFileName());
+			ps.setString(10, draft.getSourceDocumentNo());
 			return ps;
-		}, rs -> {
-			if (!rs.next()) {
-				throw new IllegalStateException("商品データの登録に失敗しました。");
-			}
-			return rs.getLong(1);
 		});
-		if (key == null) {
-			throw new IllegalStateException("商品データの登録に失敗しました。");
-		}
-		return key;
+		return id;
 	}
 
 	public void updateProduct(KampoProductEditForm form) {
@@ -101,38 +96,35 @@ public class KampoImportRepository {
 			return ids.get(0);
 		}
 
-		Long key = jdbcTemplate.query(connection -> {
+		long id = nextId("kampo_ingredients");
+		jdbcTemplate.update(connection -> {
 			PreparedStatement ps = connection.prepareStatement("""
 				INSERT INTO kampo_ingredients (
+					id,
 					ingredient_name
-				) VALUES (?)
-				RETURNING id
+				) VALUES (?, ?)
 				""");
-			ps.setString(1, ingredientName);
+			ps.setLong(1, id);
+			ps.setString(2, ingredientName);
 			return ps;
-		}, rs -> {
-			if (!rs.next()) {
-				throw new IllegalStateException("有効成分の登録に失敗しました: " + ingredientName);
-			}
-			return rs.getLong(1);
 		});
-		if (key == null) {
-			throw new IllegalStateException("有効成分の登録に失敗しました: " + ingredientName);
-		}
-		return key;
+		return id;
 	}
 
 	public void insertProductIngredient(long productId, long ingredientId, KampoIngredientDraft draft) {
+		long id = nextId("kampo_product_ingredients");
 		jdbcTemplate.update("""
 			INSERT INTO kampo_product_ingredients (
+				id,
 				product_id,
 				ingredient_id,
 				amount_value,
 				amount_unit,
 				sort_order,
 				raw_amount_text
-			) VALUES (?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?, ?)
 			""",
+			id,
 			productId,
 			ingredientId,
 			draft.getAmountValue(),
@@ -156,8 +148,8 @@ public class KampoImportRepository {
 				source_document_no
 			FROM kampo_products
 			WHERE identification_code = ?
-			   OR sales_name ILIKE ?
-			   OR reading ILIKE ?
+			   OR LOWER(sales_name) LIKE LOWER(?)
+			   OR LOWER(reading) LIKE LOWER(?)
 			ORDER BY id DESC
 			""",
 			true,
@@ -167,7 +159,7 @@ public class KampoImportRepository {
 	}
 
 	public List<KampoProductView> findProductsByIngredientName(String ingredientName) {
-		return findProducts("""
+		List<KampoProductView> products = findProducts("""
 			SELECT DISTINCT
 				p.id,
 				p.identification_code,
@@ -178,27 +170,24 @@ public class KampoImportRepository {
 				p.dosage_daily_amount,
 				p.dosage_instructions_text,
 				p.source_file_name,
-				p.source_document_no,
-				CASE WHEN p.identification_code ~ '^[0-9]+$' THEN p.identification_code::bigint END AS identification_code_sort_key
+				p.source_document_no
 			FROM kampo_products p
-			WHERE p.sales_name ILIKE ?
-			   OR p.reading ILIKE ?
+			WHERE LOWER(p.sales_name) LIKE LOWER(?)
+			   OR LOWER(p.reading) LIKE LOWER(?)
 			   OR EXISTS (
 			   	SELECT 1
 			   	FROM kampo_product_ingredients pi
 			   	JOIN kampo_ingredients i ON i.id = pi.ingredient_id
 			   	WHERE pi.product_id = p.id
-			   	  AND i.ingredient_name ILIKE ?
+			   	  AND LOWER(i.ingredient_name) LIKE LOWER(?)
 			   )
-			ORDER BY
-				identification_code_sort_key NULLS LAST,
-				p.identification_code,
-				p.id DESC
 			""",
 			true,
 			"%" + ingredientName + "%",
 			"%" + ingredientName + "%",
 			"%" + ingredientName + "%");
+		products.sort(productComparator());
+		return products;
 	}
 
 	public List<KampoProductView> findProductsBySummaryText(String summaryText) {
@@ -215,9 +204,9 @@ public class KampoImportRepository {
 				source_file_name,
 				source_document_no
 			FROM kampo_products
-			WHERE efficacy_indication_text ILIKE ?
-			   OR sales_name ILIKE ?
-			   OR reading ILIKE ?
+			WHERE LOWER(efficacy_indication_text) LIKE LOWER(?)
+			   OR LOWER(sales_name) LIKE LOWER(?)
+			   OR LOWER(reading) LIKE LOWER(?)
 			ORDER BY id DESC
 			""",
 			true,
@@ -231,7 +220,7 @@ public class KampoImportRepository {
 	}
 
 	public List<KampoProductView> findAllProductsSortedByIdentificationCode(int limit, int offset) {
-		return findProducts("""
+		List<KampoProductView> products = findProducts("""
 			SELECT
 				id,
 				identification_code,
@@ -244,16 +233,13 @@ public class KampoImportRepository {
 				source_file_name,
 				source_document_no
 			FROM kampo_products
-			ORDER BY
-				CASE WHEN identification_code ~ '^[0-9]+$' THEN identification_code::bigint END NULLS LAST,
-				identification_code,
-				id DESC
-			LIMIT ?
-			OFFSET ?
-			""",
-			false,
-			limit,
-			offset);
+		""",
+			false);
+		products.sort(productComparator());
+		int fromIndex = Math.min(Math.max(offset, 0), products.size());
+		int safeLimit = Math.max(limit, 0);
+		int toIndex = (int) Math.min((long) fromIndex + safeLimit, products.size());
+		return new ArrayList<>(products.subList(fromIndex, toIndex));
 	}
 
 	public KampoProductView findProductById(long id) {
@@ -340,6 +326,34 @@ public class KampoImportRepository {
 		}
 
 		return products;
+	}
+
+	private Comparator<KampoProductView> productComparator() {
+		return Comparator
+			.comparing((KampoProductView product) -> numericIdentificationCode(product.getIdentificationCode()),
+				Comparator.nullsLast(Long::compareTo))
+			.thenComparing(product -> Objects.requireNonNullElse(product.getIdentificationCode(), ""))
+			.thenComparing(KampoProductView::getId, Comparator.reverseOrder());
+	}
+
+	private Long numericIdentificationCode(String identificationCode) {
+		if (identificationCode == null || identificationCode.isBlank()) {
+			return null;
+		}
+		for (int index = 0; index < identificationCode.length(); index++) {
+			if (!Character.isDigit(identificationCode.charAt(index))) {
+				return null;
+			}
+		}
+		return Long.parseLong(identificationCode);
+	}
+
+	private long nextId(String tableName) {
+		Long nextId = jdbcTemplate.queryForObject("SELECT COALESCE(MAX(id), 0) + 1 FROM " + tableName, Long.class);
+		if (nextId == null) {
+			throw new IllegalStateException("ID の採番に失敗しました: " + tableName);
+		}
+		return nextId;
 	}
 
 	private void loadIngredients(List<KampoProductView> products) {

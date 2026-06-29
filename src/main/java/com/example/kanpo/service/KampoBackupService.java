@@ -113,18 +113,17 @@ public class KampoBackupService {
 		builder.append('\n');
 		builder.append(loadSchema()).append('\n');
 		builder.append('\n');
-		builder.append("BEGIN;\n\n");
-		builder.append("TRUNCATE TABLE kampo_product_ingredients, kampo_ingredients, kampo_products RESTART IDENTITY CASCADE;\n\n");
+		builder.append("SET REFERENTIAL_INTEGRITY FALSE;\n\n");
+		builder.append("DELETE FROM kampo_product_ingredients;\n");
+		builder.append("DELETE FROM kampo_ingredients;\n");
+		builder.append("DELETE FROM kampo_products;\n\n");
 		appendProducts(builder);
 		builder.append('\n');
 		appendIngredients(builder);
 		builder.append('\n');
 		appendProductIngredients(builder);
 		builder.append('\n');
-		builder.append("SELECT setval(pg_get_serial_sequence('kampo_products','id'), COALESCE((SELECT MAX(id) FROM kampo_products), 1), EXISTS (SELECT 1 FROM kampo_products));\n");
-		builder.append("SELECT setval(pg_get_serial_sequence('kampo_ingredients','id'), COALESCE((SELECT MAX(id) FROM kampo_ingredients), 1), EXISTS (SELECT 1 FROM kampo_ingredients));\n");
-		builder.append("SELECT setval(pg_get_serial_sequence('kampo_product_ingredients','id'), COALESCE((SELECT MAX(id) FROM kampo_product_ingredients), 1), EXISTS (SELECT 1 FROM kampo_product_ingredients));\n");
-		builder.append("\nCOMMIT;\n");
+		builder.append("SET REFERENTIAL_INTEGRITY TRUE;\n");
 		return builder.toString();
 	}
 
